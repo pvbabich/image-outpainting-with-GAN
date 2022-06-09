@@ -10,6 +10,10 @@ This is an example of a generator that performs the task of outpainting. On the 
 
 <img src="img3.jpg" alt="Idea" width="800"/>
 
+## Method
+
+We used the approach described in the articles [1](https://arxiv.org/abs/1808.08483), [2](http://iizuka.cs.tsukuba.ac.jp/projects/completion/data/completion_sig2017.pdf), which includes the use of a local discriminator. In addition, we used the structural similarity loss function for Generator SSIM[3](https://arxiv.org/abs/1511.08861) and pixel loss function L1.
+
 ## Usage
 
 1. Install pytorch implementation of SSIM Loss function: https://github.com/VainF/pytorch-msssim
