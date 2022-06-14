@@ -12,7 +12,7 @@ This is an example of a generator that performs the task of outpainting. On the 
 
 ## Method
 
-We used the approach described in the articles [1](https://arxiv.org/abs/1808.08483), [2](http://iizuka.cs.tsukuba.ac.jp/projects/completion/data/completion_sig2017.pdf), which includes the use of a local discriminator. In addition, we used the structural similarity loss function for Generator SSIM[3](https://arxiv.org/abs/1511.08861) and pixel loss function L1. We also considered an approach that includes the perceptual loss described in [4](https://arxiv.org/abs/1603.08155), [5](https://arxiv.org/abs/1609.04802v5).
+We used the approach described in the articles [1](https://arxiv.org/abs/1808.08483), [2](http://iizuka.cs.tsukuba.ac.jp/projects/completion/data/completion_sig2017.pdf), which includes the use of a local discriminator. In addition, we used the structural similarity loss function for Generator SSIM (see [3](https://arxiv.org/abs/1511.08861)) and pixel loss function L1. We also considered an approach that includes the perceptual loss described in [4](https://arxiv.org/abs/1603.08155), [5](https://arxiv.org/abs/1609.04802v5).
 
 ## Usage
 
