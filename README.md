@@ -19,7 +19,7 @@ We used the approach described in the articles [1](https://arxiv.org/abs/1808.08
 1. Install pytorch implementation of SSIM Loss function: https://github.com/VainF/pytorch-msssim
 2. Prepare a dataset split into the folowing folders: *train/gt* and *val/gt*.
 3. Run `Prepare.py 64 128` and `Prepare.py 64 128 val`. Arguments in the Prepare.py means 'cropped size', 'output size' and 'destination folder' respectively.
-4. For training your own model edit 'Config.py' and run `Train.ipynb`.
+4. For training your own model edit `Config.py` and run `Train.ipynb`.
 5. Run `Generate.py input.jpg output.jpg expand_size` for evaluation of custom images. This script uses `generator_final.tar` to load network weights.
 
 ## Pretrained model
