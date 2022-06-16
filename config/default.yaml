@@ -1,0 +1,26 @@
+model_name: model150622
+mode: new
+
+train:
+  max_epoch: 1
+  log_freq: 1000
+
+size:
+  cropped_size: 64
+  output_size: 128
+
+dataloader:
+  num_workers: 4
+  batch_size: 8
+
+optimizer:
+  learning_rate: 3e-4
+  adam_betas: 0.5, 0.999
+
+loss:
+  loss_weights:
+    pixel: 0.5
+    per: 0.5
+    adv: 0.0004
+  loss_pixel: l1
+  loss_per: ssim
