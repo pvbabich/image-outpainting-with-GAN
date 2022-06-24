@@ -4,7 +4,7 @@ import cv2
 import torch
 from torchvision.transforms import ToTensor, ToPILImage
 
-from train import Generator
+from image_outpainting.old.train_edged import Generator
 
 
 def generate(

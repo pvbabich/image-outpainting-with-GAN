@@ -5,6 +5,7 @@ from PIL import Image, ImageOps
 from skimage.feature import canny
 from torch.utils.data import Dataset
 from torchvision import transforms
+from torchvision.transforms.functional import to_grayscale
 
 
 def mirror_image(image, mode="RGB"):
@@ -25,8 +26,6 @@ class OutpaintingDataset(Dataset):
         # Get image list
         self.gt_list = glob.glob(os.path.join(folder_path, 'gt')+'/*.jpg')
         self.cr_list = glob.glob(os.path.join(folder_path, 'cropped') + '/*.jpg')
-        self.gt_edge_list = glob.glob(os.path.join(folder_path, 'gt_edge') + '/*.jpg')
-        self.cr_edge_list = glob.glob(os.path.join(folder_path, 'cr_edge') + '/*.jpg')
         # Calculate len
         self.data_len = len(self.gt_list)
         # Transforms
@@ -36,28 +35,20 @@ class OutpaintingDataset(Dataset):
 
         gt_image_path = self.gt_list[index]
         cr_image_path = self.cr_list[index]
-        gt_edge_image_path = self.gt_edge_list[index]
-        cr_edge_image_path = self.cr_edge_list[index]
 
         # Open image
         gt_im = Image.open(gt_image_path)
         cr_im = Image.open(cr_image_path)
-        gt_edge_im = Image.open(gt_edge_image_path)
-        cr_edge_im = Image.open(cr_edge_image_path)
 
         # Mirror
         gt_im = mirror_image(gt_im, "RGB")
         cr_im = mirror_image(cr_im, "RGB")
-        gt_edge_im = mirror_image(gt_edge_im, "L")
-        cr_edge_im = mirror_image(cr_edge_im, "L")
 
         # Transform image to tensor
         gt_tensor = self.to_tensor(gt_im)
         cr_tensor = self.to_tensor(cr_im)
-        gt_edge_tensor = self.to_tensor(gt_edge_im)
-        cr_edge_tensor = self.to_tensor(cr_edge_im)
         
-        return gt_tensor, cr_tensor, gt_edge_tensor, cr_edge_tensor
+        return gt_tensor, cr_tensor
 
     def __len__(self):
         return self.data_len  # of how many examples(images?) you have

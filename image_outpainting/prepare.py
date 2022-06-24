@@ -7,8 +7,10 @@ import tqdm
 
 
 def preprocessing(cropped_size, output_size, expand_size, target_dir='train'):
+
+    os.chdir('..')
     cwd = os.getcwd()
-    gt_names = glob.glob(os.path.join(cwd, '../dataset', target_dir, 'gt') + '/*.jpg')
+    gt_names = glob.glob(os.path.join(cwd, 'dataset', target_dir, 'gt') + '/*.jpg')
     bar = tqdm.tqdm()
     for img_path in gt_names:
         img = cv2.imread(img_path)
@@ -36,5 +38,7 @@ if __name__ == "__main__":
     expand_size = (output_size - cropped_size) // 2
     if len(sys.argv) == 4:
         target_dir = sys.argv[3]
-    
+    else:
+        target_dir = 'train'
+
     preprocessing(cropped_size, output_size, expand_size, target_dir)
