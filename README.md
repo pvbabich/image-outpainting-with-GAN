@@ -14,12 +14,12 @@ This is an example of a generator that performs the task of outpainting. On the 
 
 1. Install pytorch implementation of SSIM Loss function: https://github.com/VainF/pytorch-msssim
 2. Prepare a dataset split into the folowing folders: *train/gt* and *val/gt*.
-3. Run `Prepare.py 64 128` and `Prepare.py 64 128 val`. Arguments in the Prepare.py means 'cropped size', 'output size' and 'destination folder' respectively.
-4. For training your own model edit and run `Train.ipynb`.
-5. Run `Generate.py input.jpg output.jpg expand_size` for evaluation of custom images. This script uses `generator_final.tar` to load network weights.
+3. Run `prepare.py 64 128` and `prepare.py 64 128 val`. Arguments in the *prepare.py* means 'cropped size', 'output size' and 'destination folder' respectively.
+4. For training your own model edit and run `train.py` and `default.yaml`.
+5. Run `generate.py input.jpg output.jpg expand_size` for evaluation of custom images. This script uses `logs/models/final/final.tar` to load network weights.
 
 ## Pretrained model
 
-* [Generator model](https://drive.google.com/file/d/1C7SYYDUpgONSz2Vq1FISY-KiISvnezCR/view?usp=sharing): Places365
+* [Final model](https://drive.google.com/file/d/1C7SYYDUpgONSz2Vq1FISY-KiISvnezCR/view?usp=sharing): Places365
 
 Enjoy!
