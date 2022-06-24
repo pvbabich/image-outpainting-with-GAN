@@ -1,17 +1,17 @@
-model_name: model150622
+model_name: a-06-24
 mode: new
+model_file: None
 
 train:
-  max_epoch: 1
-  log_freq: 1000
-
+  max_epoch: 40
+  log_freq: 200
 size:
   cropped_size: 64
   output_size: 128
 
 dataloader:
   num_workers: 4
-  batch_size: 8
+  batch_size: 16
 
 optimizer:
   learning_rate: 3e-4
@@ -19,8 +19,9 @@ optimizer:
 
 loss:
   loss_weights:
-    pixel: 0.5
-    per: 0.5
+    pixel: 1
+    per: 0.4
+    style: 2500
     adv: 0.0004
-  loss_pixel: l1
-  loss_per: ssim
+
+
