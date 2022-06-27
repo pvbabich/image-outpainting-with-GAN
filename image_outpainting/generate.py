@@ -1,17 +1,20 @@
+import os
 import sys
 
 import cv2
 import torch
 from torchvision.transforms import ToTensor, ToPILImage
 
-from image_outpainting.old.train_edged import Generator
+from train import OutpaintingGAN
 
 
 def generate(
-        image_path, model_path = 'logs/models/gen-final.tar', bordered: bool = True, expand_size: int = 32):
+        image_path, model_path='logs/final/final.tar', bordered: bool = True, expand_size: int = 32):
     
     gpu_device = torch.device('cuda:0')
     cpu_device = torch.device("cpu")
+
+    os.chdir('..')
 
     input_img = cv2.imread(image_path)
     if bordered:
@@ -21,11 +24,15 @@ def generate(
         cropped_size = input_img.shape[1]
         output_size = cropped_size + expand_size * 2
 
-    generator = Generator(cropped_size, output_size)
+    generator = OutpaintingGAN(learning_rate=0,
+                               betas=(0,0),
+                               cropd_size=cropped_size,
+                               outpt_size=output_size,
+                               loss_weights={}).generator()
     generator.to(gpu_device)
     
-    checkpoint_gen = torch.load(generator_path)
-    generator.load_state_dict(checkpoint_gen['model_state_dict'])
+    checkpoint = torch.load(os.path.join(os.getcwd(), model_path))
+    generator.load_state_dict(checkpoint['gen_model_state_dict'])
 
     if not bordered:
         input_img = cv2.copyMakeBorder(

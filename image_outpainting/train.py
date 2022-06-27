@@ -44,6 +44,7 @@ if __name__ == "__main__":
             model_path = os.path.join(os.getcwd(), 'logs', 'models', model_file)
             epoch, loss_dict = outpainting_gan.load_model(model_path)
             print("Loaded ", model_path)
+            epoch += 1
         except:
             print("Failed to load model")
 
@@ -72,7 +73,7 @@ if __name__ == "__main__":
                     f'[{epoch}, {i + 1:5d}] '
                     f'loss_pxl: {run_loss[0] / log_freq:.4f} '
                     f'loss_per: {run_loss[1] / log_freq:.4f} '
-                    f'loss_style (1e+5): {run_loss[2] * 1e+5 / log_freq:.4f} '
+                    f'loss_style (1e+5): {run_loss[2] * 1e+6 / log_freq:.4f} '
                     f'loss_adv: {run_loss[3] / log_freq:.4f} '
                     f'loss_dis: {run_loss[4] / log_freq:.4f} '
                 )
@@ -85,15 +86,15 @@ if __name__ == "__main__":
 
                 # show
                 input_img_path = random.choice(glob.glob(os.path.join(cwd, 'dataset', 'train', 'cropped', '*.jpg')))
-                input_img_path = os.path.join(cwd, 'dataset', 'train', 'gt', input_img_path.split('/')[-1])
+                gt_img_path = os.path.join(cwd, 'dataset', 'train', 'gt', input_img_path.split('/')[-1])
                 fig_name = model_name + '-epoch-' + str(epoch).zfill(3) + '-' + str(i + 1) + '.jpg'
                 fig_path = os.path.join(cwd, 'logs', 'imgs', model_name, fig_name)
-                outpainting_gan.show(input_img_path, input_img_path, fig_path)
-
-        epoch += 1
+                outpainting_gan.show(input_img_path, gt_img_path, fig_path)
 
         # save model
         if epoch % 5 == 0:
+            save_path = os.path.join(os.getcwd(), 'logs', 'models', model_name,
+                             model_name + '-epoch-' + str(epoch).zfill(3) + '.tar')
             torch.save(
                 {
                     'epoch': epoch,
@@ -103,5 +104,7 @@ if __name__ == "__main__":
                     'dis_optimizer_state_dict': outpainting_gan.dis_optimizer.state_dict(),
                     'loss_dict': loss_dict
                 },
-                os.path.join(os.getcwd(), 'logs', 'models', model_name,
-                             model_name + '-epoch-' + str(epoch-1).zfill(3) + '.tar'))
+                save_path)
+            print('Saved', save_path)
+
+        epoch += 1

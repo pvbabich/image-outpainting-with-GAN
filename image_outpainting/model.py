@@ -7,6 +7,7 @@ import torch.optim as optim
 from PIL import Image
 from pytorch_msssim import SSIM
 from torch import nn
+from torch.nn.utils import spectral_norm
 from torchvision import transforms
 from torchvision.models import vgg19
 from torchvision.transforms.functional import crop
@@ -40,22 +41,22 @@ class Generator(nn.Module):
         # downsampling block
         self.lrelu = nn.LeakyReLU(0.2)
         self.conv1 = nn.Conv2d(in_channel, 64, kernel_size=5, stride=1, padding=2)  # 128 -> 128
-        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1)  # 128 -> 64
-        self.conv3 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1)  # 64 -> 64
-        self.conv4 = nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1)  # 64 -> 32
-        self.convd1 = nn.Conv2d(256, 256, kernel_size=3, stride=1, dilation=2, padding=2)  # 32 -> 32
-        self.convd2 = nn.Conv2d(256, 256, kernel_size=3, stride=1, dilation=4, padding=4)  # 32 -> 32
-        self.convd3 = nn.Conv2d(256, 256, kernel_size=3, stride=1, dilation=8, padding=8)  # 32 -> 32
+        self.conv2 = spectral_norm(nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1))  # 128 -> 64
+        self.conv3 = spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1))  # 64 -> 64
+        self.conv4 = spectral_norm(nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1))  # 64 -> 32
+        self.convd1 = spectral_norm(nn.Conv2d(256, 256, kernel_size=3, stride=1, dilation=2, padding=2))  # 32 -> 32
+        self.convd2 = spectral_norm(nn.Conv2d(256, 256, kernel_size=3, stride=1, dilation=4, padding=4))  # 32 -> 32
+        self.convd3 = spectral_norm(nn.Conv2d(256, 256, kernel_size=3, stride=1, dilation=8, padding=8))  # 32 -> 32
 
         # upsampling block
-        self.convt1 = nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, output_padding=1)  # 32 -> 64
-        self.conv5 = nn.Conv2d(128, 128, kernel_size=3, stride=1)  # 64 -> 64
-        self.convt2 = nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, output_padding=1)  # 64 -> 128
-        self.conv6 = nn.Conv2d(64, out_channel, kernel_size=3, stride=1)  # 128 -> 128
+        self.convt1 = spectral_norm(nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, output_padding=1))  # 32 -> 64
+        self.conv5 = spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1))  # 64 -> 64
+        self.convt2 = spectral_norm(nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, output_padding=1))  # 64 -> 128
+        self.conv6 = spectral_norm(nn.Conv2d(64, out_channel, kernel_size=3, stride=1))  # 128 -> 128
 
-        self.norm64 = nn.BatchNorm2d(64, eps=0.8)
-        self.norm128 = nn.BatchNorm2d(128, eps=0.8)
-        self.norm256 = nn.BatchNorm2d(256, eps=0.8)
+        self.norm64 = nn.BatchNorm2d(64)
+        self.norm128 = nn.BatchNorm2d(128)
+        self.norm256 = nn.BatchNorm2d(256)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -83,14 +84,15 @@ class Discriminator(nn.Module):
         self.expand_size = (output_size - cropped_size) // 2
 
         self.lrelu = nn.LeakyReLU(0.2)
-        self.inorm = nn.InstanceNorm2d(64)
 
-        self.conv1 = nn.Conv2d(in_channel, 32, 5, stride=2, padding=2)
-        self.conv2 = nn.Conv2d(32, 64, 5, stride=2, padding=2)
-        self.conv3 = nn.Conv2d(64, 64, 5, stride=2, padding=2)
-        self.fc1 = nn.Linear(64 * (self.expand_size // 8) * (self.output_size // 16), 512)
-        self.fc2 = nn.Linear(64 * (self.output_size // 32) ** 2, 512)
-        self.fc3 = nn.Linear(1024, 1)
+        self.conv1 = spectral_norm(nn.Conv2d(in_channel, 32, 5, stride=2, padding=2))
+        self.conv2 = spectral_norm(nn.Conv2d(32, 64, 5, stride=2, padding=2))
+        self.conv3 = spectral_norm(nn.Conv2d(64, 64, 5, stride=2, padding=2))
+        self.fc1 = spectral_norm(nn.Linear(64 * (self.expand_size // 8) * (self.output_size // 16), 512))
+        self.fc2 = spectral_norm(nn.Linear(64 * (self.output_size // 32) ** 2, 512))
+        self.fc3 = spectral_norm(nn.Linear(1024, 1))
+
+        self.inorm = nn.InstanceNorm2d(64)
 
     def forward(self, x):
         y_in = crop(x, 0, self.cropped_size // 2, self.output_size, self.expand_size * 2)
@@ -127,8 +129,8 @@ class OutpaintingGAN(nn.Module):
         self.generator = Generator(self.cropped_size, self.output_size, 3, 3)
         self.discriminator = Discriminator(self.cropped_size, self.output_size, 3)
 
-        self.gen_optimizer = optim.Adam(self.generator.parameters(), lr=learning_rate, betas=betas)
-        self.dis_optimizer = optim.Adam(self.discriminator.parameters(), lr=learning_rate, betas=betas)
+        self.gen_optimizer = optim.Adam(self.generator.parameters(), lr=learning_rate, betas=betas, weight_decay=1e-5)
+        self.dis_optimizer = optim.Adam(self.discriminator.parameters(), lr=learning_rate, betas=betas, weight_decay=1e-5)
         self.loss_weights = loss_weights
 
     def train_step(self, inputs, gt):
