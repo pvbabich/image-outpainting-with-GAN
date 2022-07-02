@@ -2,20 +2,15 @@ import glob
 import os
 
 from PIL import Image, ImageOps
-from skimage.feature import canny
 from torch.utils.data import Dataset
 from torchvision import transforms
-from torchvision.transforms.functional import to_grayscale
 
 
-def mirror_image(image, mode="RGB"):
+def mirror_image(image):
 
     left_part = image.crop((0, 0, image.size[0] // 2, image.size[1]))
     right_part = image.crop((image.size[0] // 2, 0, image.size[0], image.size[1]))
-    if mode == "RGB":
-        result_image = Image.new(mode="RGB", size=image.size)
-    else:
-        result_image = Image.new(mode="L", size=image.size)
+    result_image = Image.new(mode="RGB", size=image.size)
     result_image.paste(right_part, (0, 0))
     result_image.paste(left_part, (image.size[0] // 2, 0))
     return result_image
@@ -39,10 +34,12 @@ class OutpaintingDataset(Dataset):
         # Open image
         gt_im = Image.open(gt_image_path)
         cr_im = Image.open(cr_image_path)
+        expand_size = (gt_im.size[0] - cr_im.size[0]) // 2
+        cr_im = ImageOps.expand(cr_im, border=(expand_size, 0, expand_size, 0))
 
         # Mirror
-        gt_im = mirror_image(gt_im, "RGB")
-        cr_im = mirror_image(cr_im, "RGB")
+        gt_im = mirror_image(gt_im)
+        cr_im = mirror_image(cr_im)
 
         # Transform image to tensor
         gt_tensor = self.to_tensor(gt_im)

@@ -1,11 +1,12 @@
-import glob
 import os
-import random
 import sys
 
 import torch
+import torchvision.utils
 import yaml
 from torch.utils.data import Dataset
+from torch.utils.tensorboard import SummaryWriter
+from torchvision.transforms.functional import crop
 
 from dataloader import OutpaintingDataset
 from model import OutpaintingGAN
@@ -28,20 +29,21 @@ if __name__ == "__main__":
     output_size = int(config['size']['output_size'])
     expand_size = (output_size - cropped_size) // 2
     learning_rate = float(config['optimizer']['learning_rate'])
+    dis_learning_rate = float(config['optimizer']['dis_learning_rate'])
     betas = tuple(map(float, config['optimizer']['adam_betas'].split(',')))
     loss_weights = config['loss']['loss_weights']
     model_name = str(config['model_name'])
-    os.makedirs(os.path.join(cwd, 'logs', 'imgs', model_name), exist_ok=True)
-    os.makedirs(os.path.join(cwd, 'logs', 'models', model_name), exist_ok=True)
+    os.makedirs(os.path.join(cwd, 'logs_model', model_name), exist_ok=True)
+    writer = SummaryWriter(os.path.join('tb_logs', model_name))
 
-    outpainting_gan = OutpaintingGAN(learning_rate, betas, cropped_size, output_size, loss_weights)
+    outpainting_gan = OutpaintingGAN(learning_rate, dis_learning_rate, betas, cropped_size, output_size, loss_weights)
     outpainting_gan.to(gpu_device)
     epoch = 1
     loss_dict = {'img_pxl': [], 'img_per': [], 'img_style': [], 'img_adv': [], 'img_dis': []}
     if config['mode'] == 'load':
         try:
             model_file = str(config['model_file'])
-            model_path = os.path.join(os.getcwd(), 'logs', 'models', model_file)
+            model_path = os.path.join(os.getcwd(), 'logs_model', model_file)
             epoch, loss_dict = outpainting_gan.load_model(model_path)
             print("Loaded ", model_path)
             epoch += 1
@@ -56,6 +58,8 @@ if __name__ == "__main__":
 
     log_freq = int(config['train']['log_freq'])
     max_epoch = int(config['train']['max_epoch'])
+    global_step = 0
+    epoch_len = len(trainloader)
     while epoch <= max_epoch:
         run_loss = [0] * 9
         for i, data in enumerate(trainloader, 0):
@@ -77,6 +81,11 @@ if __name__ == "__main__":
                     f'loss_adv: {run_loss[3] / log_freq:.4f} '
                     f'loss_dis: {run_loss[4] / log_freq:.4f} '
                 )
+                writer.add_scalar('loss_pxl', run_loss[0] / log_freq, epoch * epoch_len + i)
+                writer.add_scalar('loss_per', run_loss[1] / log_freq, epoch * epoch_len + i)
+                writer.add_scalar('loss_style', run_loss[2] / log_freq, epoch * epoch_len + i)
+                writer.add_scalar('loss_adv', run_loss[3] / log_freq, epoch * epoch_len + i)
+                writer.add_scalar('loss_dis', run_loss[4] / log_freq, epoch * epoch_len + i)
                 loss_dict['img_pxl'].append(run_loss[0])
                 loss_dict['img_per'].append(run_loss[1])
                 loss_dict['img_style'].append(run_loss[2])
@@ -85,16 +94,20 @@ if __name__ == "__main__":
                 run_loss = [0] * 5
 
                 # show
-                input_img_path = random.choice(glob.glob(os.path.join(cwd, 'dataset', 'train', 'cropped', '*.jpg')))
-                gt_img_path = os.path.join(cwd, 'dataset', 'train', 'gt', input_img_path.split('/')[-1])
-                fig_name = model_name + '-epoch-' + str(epoch).zfill(3) + '-' + str(i + 1) + '.jpg'
-                fig_path = os.path.join(cwd, 'logs', 'imgs', model_name, fig_name)
-                outpainting_gan.show(input_img_path, gt_img_path, fig_path)
+                gt_for_show = torch.cat((crop(gt_imgs, 0, output_size // 2, output_size, output_size // 2),
+                                         crop(gt_imgs, 0, 0, output_size, output_size // 2)), 3)
+                pred_imgs = outpainting_gan.generator(crop_imgs)
+                pred_for_show = torch.cat((crop(pred_imgs, 0, output_size // 2, output_size, output_size // 2),
+                                           crop(pred_imgs, 0, 0, output_size, output_size // 2)), 3)
+                imgs_grid = torchvision.utils.make_grid(torch.cat((gt_for_show, pred_for_show), 0), batch_size)
+                writer.add_image("epoch"+str(epoch), imgs_grid, global_step + 1)
+
+            global_step += 1
 
         # save model
         if epoch % 5 == 0:
-            save_path = os.path.join(os.getcwd(), 'logs', 'models', model_name,
-                             model_name + '-epoch-' + str(epoch).zfill(3) + '.tar')
+            save_path = os.path.join(os.getcwd(), 'logs_model', model_name,
+                                     model_name + '-epoch-' + str(epoch).zfill(3) + '.tar')
             torch.save(
                 {
                     'epoch': epoch,
