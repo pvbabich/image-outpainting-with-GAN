@@ -1,16 +1,11 @@
-import matplotlib.pyplot as plt
 import torch
-import torch.nn.functional as F
 import torch.optim as optim
-from PIL import Image
 from pytorch_msssim import SSIM
 from torch import nn
 from torch.nn.utils import spectral_norm
-from torchvision import transforms
+from torchvision.models import VGG19_Weights
 from torchvision.models import vgg19
 from torchvision.transforms.functional import crop
-
-from dataloader import mirror_image
 
 l1_module = nn.L1Loss()
 ssim_module = SSIM(data_range=1, size_average=True, channel=3)
@@ -18,7 +13,7 @@ MSE_module = nn.MSELoss()
 bce_module = nn.BCELoss()
 gpu_device = torch.device('cuda:0')
 cpu_device = torch.device("cpu")
-vgg_module = vgg19(pretrained=True).features.to(gpu_device).eval()
+vgg_module = vgg19(weights=VGG19_Weights.DEFAULT).features.to(gpu_device).eval()
 
 
 def gram(x):
