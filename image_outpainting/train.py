@@ -39,7 +39,8 @@ if __name__ == "__main__":
     outpainting_gan = OutpaintingGAN(learning_rate, dis_learning_rate, betas, cropped_size, output_size, loss_weights)
     outpainting_gan.to(gpu_device)
     epoch = 1
-    loss_dict = {'img_pxl': [], 'img_per': [], 'img_style': [], 'img_adv': [], 'img_dis': []}
+    loss_dict = {'img_pxl': [], 'img_ssim': [], 'img_per': [], 'img_style': [],
+                 'img_adv': [], 'img_dis': [], 'img_full': []}
     if config['mode'] == 'load':
         try:
             model_file = str(config['model_file'])
@@ -58,10 +59,10 @@ if __name__ == "__main__":
 
     log_freq = int(config['train']['log_freq'])
     max_epoch = int(config['train']['max_epoch'])
-    global_step = 0
     epoch_len = len(trainloader)
+    global_step = epoch_len * epoch
     while epoch <= max_epoch:
-        run_loss = [0] * 9
+        run_loss = [0] * 7
         for i, data in enumerate(trainloader, 0):
             # dataset input
             gt_imgs, crop_imgs = data
@@ -76,30 +77,37 @@ if __name__ == "__main__":
                 print(
                     f'[{epoch}, {i + 1:5d}] '
                     f'loss_pxl: {run_loss[0] / log_freq:.4f} '
-                    f'loss_per: {run_loss[1] / log_freq:.4f} '
-                    f'loss_style (1e+5): {run_loss[2] * 1e+6 / log_freq:.4f} '
-                    f'loss_adv: {run_loss[3] / log_freq:.4f} '
-                    f'loss_dis: {run_loss[4] / log_freq:.4f} '
+                    f'loss_ssim: {run_loss[1] / log_freq:.4f} '
+                    f'loss_per: {run_loss[2] / log_freq:.4f} '
+                    f'loss_style (1e+5): {run_loss[3] * 1e+5 / log_freq:.4f} '
+                    f'loss_adv: {run_loss[4] / log_freq:.4f} '
+                    f'loss_dis: {run_loss[5] / log_freq:.4f} '
+                    f'loss_full: {run_loss[6] / log_freq:.4f} '
                 )
                 writer.add_scalar('loss_pxl', run_loss[0] / log_freq, epoch * epoch_len + i)
-                writer.add_scalar('loss_per', run_loss[1] / log_freq, epoch * epoch_len + i)
-                writer.add_scalar('loss_style', run_loss[2] / log_freq, epoch * epoch_len + i)
-                writer.add_scalar('loss_adv', run_loss[3] / log_freq, epoch * epoch_len + i)
-                writer.add_scalar('loss_dis', run_loss[4] / log_freq, epoch * epoch_len + i)
+                writer.add_scalar('loss_ssim', run_loss[1] / log_freq, epoch * epoch_len + i)
+                writer.add_scalar('loss_per', run_loss[2] / log_freq, epoch * epoch_len + i)
+                writer.add_scalar('loss_style', run_loss[3] / log_freq, epoch * epoch_len + i)
+                writer.add_scalar('loss_adv', run_loss[4] / log_freq, epoch * epoch_len + i)
+                writer.add_scalar('loss_dis', run_loss[5] / log_freq, epoch * epoch_len + i)
+                writer.add_scalar('loss_full', run_loss[6] / log_freq, epoch * epoch_len + i)
                 loss_dict['img_pxl'].append(run_loss[0])
-                loss_dict['img_per'].append(run_loss[1])
-                loss_dict['img_style'].append(run_loss[2])
-                loss_dict['img_adv'].append(run_loss[3])
-                loss_dict['img_dis'].append(run_loss[4])
-                run_loss = [0] * 5
+                loss_dict['img_ssim'].append(run_loss[1])
+                loss_dict['img_per'].append(run_loss[2])
+                loss_dict['img_style'].append(run_loss[3])
+                loss_dict['img_adv'].append(run_loss[4])
+                loss_dict['img_dis'].append(run_loss[5])
+                loss_dict['img_full'].append(run_loss[6])
+                run_loss = [0] * 7
 
                 # show
+                max_to_show = min(batch_size, 8)
                 gt_for_show = torch.cat((crop(gt_imgs, 0, output_size // 2, output_size, output_size // 2),
-                                         crop(gt_imgs, 0, 0, output_size, output_size // 2)), 3)
+                                         crop(gt_imgs, 0, 0, output_size, output_size // 2)), 3)[:max_to_show]
                 pred_imgs = outpainting_gan.generator(crop_imgs)
                 pred_for_show = torch.cat((crop(pred_imgs, 0, output_size // 2, output_size, output_size // 2),
-                                           crop(pred_imgs, 0, 0, output_size, output_size // 2)), 3)
-                imgs_grid = torchvision.utils.make_grid(torch.cat((gt_for_show, pred_for_show), 0), batch_size)
+                                           crop(pred_imgs, 0, 0, output_size, output_size // 2)), 3)[:max_to_show]
+                imgs_grid = torchvision.utils.make_grid(torch.cat((gt_for_show, pred_for_show), 0), max_to_show)
                 writer.add_image("epoch"+str(epoch), imgs_grid, global_step + 1)
 
             global_step += 1

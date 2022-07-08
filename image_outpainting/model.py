@@ -6,6 +6,7 @@ from torch.nn.utils import spectral_norm
 from torchvision.models import VGG19_Weights
 from torchvision.models import vgg19
 from torchvision.transforms.functional import crop
+from vgg19_features import vgg19_features
 
 l1_module = nn.L1Loss()
 ssim_module = SSIM(data_range=1, size_average=True, channel=3)
@@ -14,6 +15,7 @@ bce_module = nn.BCELoss()
 gpu_device = torch.device('cuda:0')
 cpu_device = torch.device("cpu")
 vgg_module = vgg19(weights=VGG19_Weights.DEFAULT).features.to(gpu_device).eval()
+vgg_features = vgg19_features().to(gpu_device)
 
 
 def gram(x):
@@ -208,16 +210,23 @@ class OutpaintingGAN(nn.Module):
         outs_cr = torch.cat((outs_right_crop, outs_left_crop), 3)
         loss_pxl = l1_module(outs_cr, gt_cr)
 
-        loss_per = 1 - ssim_module(outs_cr, gt_cr)
+        loss_ssim = 1 - ssim_module(outs_cr, gt_cr)
 
-        loss_style = MSE_module(gram(vgg_module(outputs)), gram(vgg_module(gt)))
+        loss_per = l1_module(getattr(vgg_features(outputs), 'relu1_1'), getattr(vgg_features(gt), 'relu1_1')) \
+                   + l1_module(getattr(vgg_features(outputs), 'relu2_1'), getattr(vgg_features(gt), 'relu2_1')) \
+                   + l1_module(getattr(vgg_features(outputs), 'relu3_1'), getattr(vgg_features(gt), 'relu3_1')) \
+                   + l1_module(getattr(vgg_features(outputs), 'relu4_1'), getattr(vgg_features(gt), 'relu4_1')) \
+                   + l1_module(getattr(vgg_features(outputs), 'relu5_1'), getattr(vgg_features(gt), 'relu5_1'))
+
+        loss_style = MSE_module(gram(vgg_module(outs_cr)), gram(vgg_module(gt_cr)))
 
         loss_adv = bce_module(dis(outputs), valid)
 
-        loss_gen = self.loss_weights['pixel'] * loss_pxl + \
-                   self.loss_weights['per'] * loss_per + \
-                   self.loss_weights['style'] * loss_style + \
-                   self.loss_weights['adv'] * loss_adv
+        loss_gen = self.loss_weights['pixel'] * loss_pxl \
+                   + self.loss_weights['ssim'] * loss_ssim \
+                   + self.loss_weights['per'] * loss_per \
+                   + self.loss_weights['style'] * loss_style \
+                   + self.loss_weights['adv'] * loss_adv
 
         loss_gen.backward()
         gen_opt.step()
@@ -230,7 +239,8 @@ class OutpaintingGAN(nn.Module):
         loss_dis.backward()
         dis_opt.step()
 
-        return loss_pxl.item(), loss_per.item(), loss_style.item(), loss_adv.item(), loss_dis.item()
+        return loss_pxl.item(), loss_ssim.item(), loss_per.item(), loss_style.item(), \
+               loss_adv.item(), loss_dis.item(), loss_gen.item()
 
     def load_model(self, model_path):
         checkpoint = torch.load(model_path)
