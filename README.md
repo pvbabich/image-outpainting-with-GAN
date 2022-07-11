@@ -1,6 +1,6 @@
 # Image Outpainting with GAN - PyTorch Implementation
 
-<img src="pics/img1.jpeg" alt="Idea" width="400"/>
+<img src="pics/img1.jpeg" alt="Idea" width="600"/>
 
 This is an example of a generator that performs the task of outpainting. On the left is the image input to the generator, in the middle is the result obtained by the generator, and on the right is the ground truth. Cropped 128x64 images are used as input to the generator, at the output we get 128x128 images, which are compared with the original ones.
 
