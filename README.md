@@ -23,6 +23,6 @@ This is an example of a generator that performs the task of outpainting. On the 
 
 ## Pretrained model
 
-* [Final model](https://disk.yandex.ru/d/qiqtFApug5h2zQ): Places365
+* [Final model](https://disk.yandex.ru/d/s_tb7hhLOFctLA): Places365
 
 Enjoy!
